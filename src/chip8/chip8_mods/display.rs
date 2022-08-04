@@ -17,4 +17,28 @@ impl Display {
         }
         println!("Display cleared...");
     }
+
+    pub fn is_pixel_on(&self, x: usize, y: usize) -> bool {
+        self.pixels[y][x]
+    }
+
+    pub fn set_pixel(&mut self, x: usize, y: usize) {
+        self.pixels[y][x] = true;
+    }
+
+    pub fn un_set_pixel(&mut self, x: usize, y: usize) {
+        self.pixels[y][x] = false;
+    }
+
+    pub fn is_right_edge(&self, x: usize) -> bool {
+        x >= 31
+    }
+
+    pub fn is_bottom_edge(&self, y: usize) -> bool {
+        y >= 62
+    }
+
+    pub fn get_pixels(&self) -> [[bool; 64]; 32] {
+        self.pixels
+    }
 }

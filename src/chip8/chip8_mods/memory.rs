@@ -1,4 +1,3 @@
-use byteorder::{ByteOrder, LittleEndian};
 use std::fs;
 use std::path::Path; // 1.3.4
 
@@ -50,5 +49,20 @@ impl Memory {
         let memory_point2 = self.RAM.get((pointer_value + 1) as usize).unwrap();
 
         return ((*memory_point as u16) << 8) | *memory_point2 as u16;
+    }
+
+    pub fn get_byte(&self, from: usize, at: usize) -> u8 {
+        return *self.RAM.get(from + at).unwrap();
+    }
+
+    pub fn read_program(&mut self, path: &str) {
+        let filenpath = Path::new(path);
+        println!("In program {}", filenpath.display());
+
+        let contents = fs::read(filenpath).expect("Something went wrong reading the program");
+
+        for (i, u8val) in contents.iter().enumerate() {
+            self.RAM[79 + i] = *u8val;
+        }
     }
 }
