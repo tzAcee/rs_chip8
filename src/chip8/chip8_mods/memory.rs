@@ -1,18 +1,19 @@
+use byteorder::{ByteOrder, LittleEndian};
 use std::fs;
-use std::path::Path;
+use std::path::Path; // 1.3.4
 
 fn read_font() -> Option<[u8; 80]> {
     let filenpath = Path::new("./font/font");
     println!("In file {}", filenpath.display());
 
-    let mut contents = fs::read_to_string(filenpath)
-        .expect("Something went wrong reading the file");
+    let mut contents =
+        fs::read_to_string(filenpath).expect("Something went wrong reading the file");
 
     println!("With text:\n{}", contents);
     contents.retain(|c| !c.is_whitespace());
     let split_content: Vec<&str> = contents.split(',').collect();
     if split_content.len() != 80 {
-        return None
+        return None;
     }
     let mut result_array: [u8; 80] = [0; 80];
     for (i, font_data) in split_content.iter().enumerate() {
@@ -27,7 +28,7 @@ fn read_font() -> Option<[u8; 80]> {
 }
 
 pub struct Memory {
-    RAM: [u8; 4096]
+    RAM: [u8; 4096],
 }
 
 impl Memory {
@@ -41,6 +42,13 @@ impl Memory {
                 ram[i] = *font_byte;
             }
         }
-        Self {RAM: ram}
+        Self { RAM: ram }
+    }
+
+    pub fn get_instruction(&self, pointer_value: u32) -> u16 {
+        let memory_point = self.RAM.get(pointer_value as usize).unwrap();
+        let memory_point2 = self.RAM.get((pointer_value + 1) as usize).unwrap();
+
+        return ((*memory_point as u16) << 8) | *memory_point2 as u16;
     }
 }

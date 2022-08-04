@@ -1,6 +1,6 @@
 mod chip8;
 
 fn main() {
-    let _chip8 = chip8::Chip8::new();
-    println!("Hello, world!");
+    let mut chip8 = chip8::Chip8::new();
+    chip8.run(1);
 }
