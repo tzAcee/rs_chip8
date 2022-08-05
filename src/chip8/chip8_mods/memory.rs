@@ -62,7 +62,7 @@ impl Memory {
         let contents = fs::read(filenpath).expect("Something went wrong reading the program");
 
         for (i, u8val) in contents.iter().enumerate() {
-            self.RAM[79 + i] = *u8val;
+            self.RAM[0x200 + i] = *u8val;
         }
     }
 }

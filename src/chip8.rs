@@ -48,23 +48,25 @@ impl Chip8 {
         self.pc.set_point_value(self.pc.get_point_value() + 2);
     }
     fn decode(&mut self) {
-        match (self.current_instruction & 0xF000) {
-            0x0 => {
+        let nibble =self.current_instruction & 0xF000;
+        println!("Trying to match nibble: {:#01x}",nibble);
+        match nibble {
+            0x0000 => {
                 // 00E0 Clear Screen
                 self.current_function = |this| (*this).display.clear();
             }
-            0x1 => {
+            0x1000 => {
                 // 1NNN Jump to NNN
                 self.current_function = |this| {
                     let address = ((*this).current_instruction & 0x0FFF) as u32;
                     (*this).pc.set_point_value(address);
                 }
             }
-            0x2 => {}
-            0x3 => {}
-            0x4 => {}
-            0x5 => {}
-            0x6 => {
+            0x2000 => {}
+            0x3000 => {}
+            0x4000 => {}
+            0x5000 => {}
+            0x6000 => { // CHECKED
                 // 6XNN // set register VX to NN
                 self.current_function = |this| {
                     let NN = ((*this).current_instruction & 0x00FF) as u8;
@@ -72,7 +74,7 @@ impl Chip8 {
                     (*this).variable_registers[X as usize].set(NN);
                 };
             }
-            0x7 => {
+            0x7000 => { // CHECKED
                 // 7XNN (add value to register VX)
                 self.current_function = |this| {
                     let NN = ((*this).current_instruction & 0x00FF) as u8;
@@ -81,33 +83,34 @@ impl Chip8 {
                     (*this).variable_registers[X as usize].set(NN + current_vx);
                 }
             }
-            0x8 => {}
-            0x9 => {}
-            0xA => {
+            0x8000 => {}
+            0x9000 => {}
+            0xA000 => { // CHECKED
                 // ANNN (set index register I)
                 self.current_function = |this| {
                     let NN = ((*this).current_instruction & 0x0FFF) as u16;
                     this.i.set(NN);
                 }
             }
-            0xB => {}
-            0xC => {}
-            0xD => {
+            0xB000 => {}
+            0xC000 => {}
+            0xD000 => {
                 //DXYN display/draw
                 self.current_function = |this| {
                     // get coordinates
                     let X = ((*this).current_instruction & 0x0F00) >> 8;
                     let mut current_vx = (*this).variable_registers[X as usize].get() % 64;
-                    let Y = ((*this).current_instruction & 0x00F0) >> 8;
+                    let Y = ((*this).current_instruction & 0x00F0) >> 4;
                     let mut current_vy = (*this).variable_registers[Y as usize].get() % 32;
 
                     // set VF to 0
-                    (*this).variable_registers[16].set(0);
+                    (*this).variable_registers[15].set(0);
 
                     // To the stuff with N ...
-                    let N = ((*this).current_instruction & 0x000F) >> 8;
+                    let N = ((*this).current_instruction & 0x000F);
+                    println!("In DRAW/DISPLAY OP-Code found N: {:#04x} in instruction {:#04x}", N, (*this).current_instruction);
                     let I = (*this).i.get();
-                    for nth in 0..=N {
+                    for nth in 0..N {
                         let nth_byte = this.memory.get_byte(I as usize, nth as usize);
 
                         let mut mask = 1u8; // assuming rightmost bit first
@@ -124,7 +127,7 @@ impl Chip8 {
                                         .display
                                         .un_set_pixel(current_vx as usize, current_vy as usize);
                                     // set VF to 1
-                                    (*this).variable_registers[16].set(1);
+                                    (*this).variable_registers[15].set(1);
                                 } else {
                                     (*this)
                                         .display
@@ -144,8 +147,8 @@ impl Chip8 {
                     }
                 }
             }
-            0xE => {}
-            0xF => {}
+            0xE000 => {}
+            0xF000 => {}
             _ => {
                 println!("Did not found Nibble of OPCODE.");
             }
