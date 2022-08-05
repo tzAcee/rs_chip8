@@ -53,8 +53,18 @@ impl Chip8 {
         println!("Calling instruction: {:#04x}", self.current_instruction);
         match nibble {
             0x0000 => {
-                // 00E0 Clear Screen
-                self.current_function = |this| (*this).display.clear();
+                self.current_function = |this| {
+                let last_bit = ((*this).current_instruction & 0x000F);
+                match last_bit {
+                    // 00E0 Clear Screen
+                    0 => {(*this).display.clear();}
+                    // 00EE Subroutines
+                    _ => {
+                        (*this).stack.set_pointer((*this).stack.get_pointer()-1);
+                        (*this).pc.set_point_value((*this).stack.get_value_at_pointer() as u32);
+                    }
+                 }
+            }
             }
             0x1000 => {
                 // 1NNN Jump to NNN
@@ -63,11 +73,60 @@ impl Chip8 {
                     (*this).pc.set_point_value(address);
                 }
             }
-            0x2000 => {}
-            0x3000 => {}
-            0x4000 => {}
-            0x5000 => {}
-            0x6000 => { // CHECKED
+            0x2000 => {
+                // 2NNN Subroutines
+                self.current_function = |this| {
+                    let NNN = ((*this).current_instruction & 0x0FFF) as u8;
+
+                    (*this).stack.push((*this).pc.get_point_value() as u16);
+                    (*this).stack.set_pointer((*this).stack.get_pointer()+1);
+                    (*this).pc.set_point_value(NNN as u32);
+                };
+            }
+            0x3000 => {
+                // 3XNN Skip
+                self.current_function = |this| {
+                    let X = ((*this).current_instruction & 0x0F00) >> 8;
+                    let current_vx = (*this).variable_registers[X as usize].get();
+                    let NN = ((*this).current_instruction & 0x00FF) as u8;
+                    if current_vx == NN {
+                        //do the skip
+                        (*this).pc.set_point_value((*this).pc.get_point_value()+2);
+                    } else {
+                        println!("Did not skip, because VX != NN");
+                    }
+                };
+            }
+            0x4000 => {
+                // 4XNN Skip
+                self.current_function = |this| {
+                    let X = ((*this).current_instruction & 0x0F00) >> 8;
+                    let current_vx = (*this).variable_registers[X as usize].get();
+                    let NN = ((*this).current_instruction & 0x00FF) as u8;
+                    if current_vx != NN {
+                        //do the skip
+                        (*this).pc.set_point_value((*this).pc.get_point_value()+2);
+                    } else {
+                        println!("Did not skip, because VX == NN");
+                    }
+                };
+            }
+            0x5000 => {
+                // 5XY0 Skip
+                self.current_function = |this| {
+                    let X = ((*this).current_instruction & 0x0F00) >> 8;
+                    let current_vx = (*this).variable_registers[X as usize].get();
+                    let Y = ((*this).current_instruction & 0x00F0) >> 4;
+                    let current_vy = (*this).variable_registers[Y as usize].get();
+                    if current_vx == current_vy {
+                        //do the skip
+                        (*this).pc.set_point_value((*this).pc.get_point_value()+2);
+                    } else {
+                        println!("Did not skip, because VX != VY");
+                    }
+                };
+            }
+            0x6000 => { 
                 // 6XNN // set register VX to NN
                 self.current_function = |this| {
                     let NN = ((*this).current_instruction & 0x00FF) as u8;
@@ -75,7 +134,7 @@ impl Chip8 {
                     (*this).variable_registers[X as usize].set(NN);
                 };
             }
-            0x7000 => { // CHECKED
+            0x7000 => { 
                 // 7XNN (add value to register VX)
                 self.current_function = |this| {
                     let NN = ((*this).current_instruction & 0x00FF) as u8;
@@ -84,17 +143,53 @@ impl Chip8 {
                     (*this).variable_registers[X as usize].set(NN + current_vx);
                 }
             }
-            0x8000 => {}
-            0x9000 => {}
-            0xA000 => { // CHECKED
+            0x8000 => {
+                // 8XY0 Set
+
+                // 8XY1 Binary Or
+
+                // 8XY2 Binary And
+
+                // 8XY3 logical XOR
+
+                // 8XY4 Add
+
+                // 8XY5 Subtract
+
+                // 8XY6 Shift [Ambigious]
+
+                // 8XY7 Subtract
+
+                // 8XYE Shift [Ambigious]
+            }
+            0x9000 => {
+                // 9XY0 Skip
+                self.current_function = |this| {
+                    let X = ((*this).current_instruction & 0x0F00) >> 8;
+                    let current_vx = (*this).variable_registers[X as usize].get();
+                    let Y = ((*this).current_instruction & 0x00F0) >> 4;
+                    let current_vy = (*this).variable_registers[Y as usize].get();
+                    if current_vx != current_vy {
+                        //do the skip
+                        (*this).pc.set_point_value((*this).pc.get_point_value()+2);
+                    } else {
+                        println!("Did not skip, because VX == VY");
+                    }
+                };
+            }
+            0xA000 => { 
                 // ANNN (set index register I)
                 self.current_function = |this| {
                     let NN = ((*this).current_instruction & 0x0FFF) as u16;
                     this.i.set(NN);
                 }
             }
-            0xB000 => {}
-            0xC000 => {}
+            0xB000 => {
+                // BNNN Jump with offset [Ambigious]
+            }
+            0xC000 => {
+                // CXNN Random
+            }
             0xD000 => {
                 //DXYN display/draw
                 self.current_function = |this| {
@@ -145,8 +240,20 @@ impl Chip8 {
                     }
                 }
             }
-            0xE000 => {}
-            0xF000 => {}
+            0xE000 => {
+                // EX9E Skip if key
+                // EXA1 Skip if key
+            }
+            0xF000 => {
+                // FX07 sets VX to the current value of the delay timer
+                // FX15 sets the delay timer to the value in VX
+                // FX18 sets the sound timer to the value in VX
+                // FX1E: Add to index
+                // FX0A: Get key
+                // FX29: Font character
+                // FX33: Binary-coded decimal conversion
+                // FX55 and FX65: Store and load memory [Ambigious]
+            }
             _ => {
                 println!("Did not found Nibble of OPCODE.");
             }
