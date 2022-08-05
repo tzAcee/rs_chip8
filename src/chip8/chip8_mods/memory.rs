@@ -1,5 +1,7 @@
 use std::fs;
 use std::path::Path; // 1.3.4
+use std::fs::File;
+use std::io::prelude::*;
 
 fn read_font() -> Option<[u8; 80]> {
     let filenpath = Path::new("./font/font");

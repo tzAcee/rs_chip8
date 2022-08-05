@@ -15,7 +15,6 @@ impl Display {
                 *pixel = false;
             }
         }
-        println!("Display cleared...");
     }
 
     pub fn is_pixel_on(&self, x: usize, y: usize) -> bool {
@@ -31,11 +30,11 @@ impl Display {
     }
 
     pub fn is_right_edge(&self, x: usize) -> bool {
-        x >= 31
+        x >= 63
     }
 
     pub fn is_bottom_edge(&self, y: usize) -> bool {
-        y >= 62
+        y >= 32
     }
 
     pub fn get_pixels(&self) -> [[bool; 64]; 32] {

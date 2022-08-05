@@ -1,7 +1,7 @@
 mod chip8_mods;
 
 use chip8_mods::*;
-use ggez::event;
+use ggez::{event, timer};
 use ggez::graphics::{self, Color};
 use ggez::{Context, GameResult};
 use glam::*;
@@ -38,8 +38,9 @@ impl Chip8 {
             current_function: { |this| () },
         };
         slf.memory.read_program(path);
-        let cb = ggez::ContextBuilder::new("super_simple", "ggez");
+        let cb = ggez::ContextBuilder::new("CHIP8_rust", "FleeXo");
         let (ctx, event_loop) = cb.build().unwrap();
+        graphics::set_window_title(&ctx, "CHIP8 Emulator in Rust");
         event::run(ctx, event_loop, slf);
     }
 
@@ -49,7 +50,7 @@ impl Chip8 {
     }
     fn decode(&mut self) {
         let nibble =self.current_instruction & 0xF000;
-        println!("Trying to match nibble: {:#01x}",nibble);
+        println!("Calling instruction: {:#04x}", self.current_instruction);
         match nibble {
             0x0000 => {
                 // 00E0 Clear Screen
@@ -108,11 +109,10 @@ impl Chip8 {
 
                     // To the stuff with N ...
                     let N = ((*this).current_instruction & 0x000F);
-                    println!("In DRAW/DISPLAY OP-Code found N: {:#04x} in instruction {:#04x}", N, (*this).current_instruction);
                     let I = (*this).i.get();
                     for nth in 0..N {
                         let nth_byte = this.memory.get_byte(I as usize, nth as usize);
-
+                        current_vx = (*this).variable_registers[X as usize].get() % 64;
                         for i in 0..8 {
                             let is_set = (nth_byte >> (7 - i) & 1);
 
@@ -157,8 +157,8 @@ impl Chip8 {
     }
 
     fn draw_display_pixels(&mut self, ctx: &mut Context) {
-        let pixel_width = 800.0 / (self.display.get_pixels().len() as f32);
-        let pixel_height = 1200.0 / (self.display.get_pixels()[0].len() as f32);
+        let pixel_width = 800.0 / (self.display.get_pixels()[0].len() as f32);
+        let pixel_height = 600.0 / (self.display.get_pixels().len() as f32);
 
         for (y_i, YArr) in self.display.get_pixels().iter().enumerate() {
             for (x_i, pixel_val) in YArr.iter().enumerate() {
@@ -168,18 +168,10 @@ impl Chip8 {
                     pixel_width,
                     pixel_height,
                 );
-                let rect_coords2: graphics::Rect = graphics::Rect::new(
-                    x_i as f32 * pixel_width,
-                    y_i as f32 * pixel_height,
-                    pixel_width - 1.0,
-                    pixel_height - 1.0,
-                );
+                if *pixel_val == true {
+                
                 let mut color = graphics::Color::WHITE;
-                let mut color2 = graphics::Color::BLACK;
-                if *pixel_val == false {
-                    color = graphics::Color::BLACK;
-                    color2 = graphics::Color::WHITE;
-                }
+
                 let rect = graphics::Mesh::new_rectangle(
                     ctx,
                     graphics::DrawMode::fill(),
@@ -187,15 +179,8 @@ impl Chip8 {
                     color,
                 )
                 .unwrap();
-                let rect2 = graphics::Mesh::new_rectangle(
-                    ctx,
-                    graphics::DrawMode::fill(),
-                    rect_coords2,
-                    color2,
-                )
-                .unwrap();
                 graphics::draw(ctx, &rect, graphics::DrawParam::default());
-                graphics::draw(ctx, &rect2, graphics::DrawParam::default());
+            }
             }
         }
     }
@@ -203,10 +188,15 @@ impl Chip8 {
 
 impl event::EventHandler<ggez::GameError> for Chip8 {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
-        self.fetch();
-        self.decode();
-        self.execute();
-        Ok(())
+        const DESIRED_FPS: u32 = 1;
+        while timer::check_update_time(_ctx, DESIRED_FPS)
+        {
+            self.fetch();
+            self.decode();
+            self.execute();
+
+        }
+            Ok(())
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
@@ -214,8 +204,6 @@ impl event::EventHandler<ggez::GameError> for Chip8 {
 
         self.draw_display_pixels(ctx);
         graphics::present(ctx)?;
-
-        thread::sleep(time::Duration::from_secs(1));
         Ok(())
     }
 }
