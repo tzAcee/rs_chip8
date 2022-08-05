@@ -1,8 +1,8 @@
 mod chip8_mods;
 
 use chip8_mods::*;
-use ggez::{event, timer};
 use ggez::graphics::{self, Color};
+use ggez::{event, timer};
 use ggez::{Context, GameResult};
 use glam::*;
 use std::{
@@ -49,22 +49,26 @@ impl Chip8 {
         self.pc.set_point_value(self.pc.get_point_value() + 2);
     }
     fn decode(&mut self) {
-        let nibble =self.current_instruction & 0xF000;
+        let nibble = self.current_instruction & 0xF000;
         println!("Calling instruction: {:#04x}", self.current_instruction);
         match nibble {
             0x0000 => {
                 self.current_function = |this| {
-                let last_bit = ((*this).current_instruction & 0x000F);
-                match last_bit {
-                    // 00E0 Clear Screen
-                    0 => {(*this).display.clear();}
-                    // 00EE Subroutines
-                    _ => {
-                        (*this).stack.set_pointer((*this).stack.get_pointer()-1);
-                        (*this).pc.set_point_value((*this).stack.get_value_at_pointer() as u32);
+                    let last_bit = ((*this).current_instruction & 0x000F);
+                    match last_bit {
+                        // 00E0 Clear Screen
+                        0 => {
+                            (*this).display.clear();
+                        }
+                        // 00EE Subroutines
+                        _ => {
+                            (*this).stack.set_pointer((*this).stack.get_pointer() - 1);
+                            (*this)
+                                .pc
+                                .set_point_value((*this).stack.get_value_at_pointer() as u32);
+                        }
                     }
-                 }
-            }
+                }
             }
             0x1000 => {
                 // 1NNN Jump to NNN
@@ -79,7 +83,7 @@ impl Chip8 {
                     let NNN = ((*this).current_instruction & 0x0FFF) as u8;
 
                     (*this).stack.push((*this).pc.get_point_value() as u16);
-                    (*this).stack.set_pointer((*this).stack.get_pointer()+1);
+                    (*this).stack.set_pointer((*this).stack.get_pointer() + 1);
                     (*this).pc.set_point_value(NNN as u32);
                 };
             }
@@ -91,7 +95,7 @@ impl Chip8 {
                     let NN = ((*this).current_instruction & 0x00FF) as u8;
                     if current_vx == NN {
                         //do the skip
-                        (*this).pc.set_point_value((*this).pc.get_point_value()+2);
+                        (*this).pc.set_point_value((*this).pc.get_point_value() + 2);
                     } else {
                         println!("Did not skip, because VX != NN");
                     }
@@ -105,7 +109,7 @@ impl Chip8 {
                     let NN = ((*this).current_instruction & 0x00FF) as u8;
                     if current_vx != NN {
                         //do the skip
-                        (*this).pc.set_point_value((*this).pc.get_point_value()+2);
+                        (*this).pc.set_point_value((*this).pc.get_point_value() + 2);
                     } else {
                         println!("Did not skip, because VX == NN");
                     }
@@ -120,13 +124,13 @@ impl Chip8 {
                     let current_vy = (*this).variable_registers[Y as usize].get();
                     if current_vx == current_vy {
                         //do the skip
-                        (*this).pc.set_point_value((*this).pc.get_point_value()+2);
+                        (*this).pc.set_point_value((*this).pc.get_point_value() + 2);
                     } else {
                         println!("Did not skip, because VX != VY");
                     }
                 };
             }
-            0x6000 => { 
+            0x6000 => {
                 // 6XNN // set register VX to NN
                 self.current_function = |this| {
                     let NN = ((*this).current_instruction & 0x00FF) as u8;
@@ -134,13 +138,14 @@ impl Chip8 {
                     (*this).variable_registers[X as usize].set(NN);
                 };
             }
-            0x7000 => { 
+            0x7000 => {
                 // 7XNN (add value to register VX)
                 self.current_function = |this| {
                     let NN = ((*this).current_instruction & 0x00FF) as u8;
                     let X = ((*this).current_instruction & 0x0F00) >> 8;
                     let current_vx = (*this).variable_registers[X as usize].get();
-                    (*this).variable_registers[X as usize].set(NN + current_vx);
+                    let addition_result = NN as u16 + current_vx as u16;
+                    (*this).variable_registers[X as usize].set(addition_result as u8);
                 }
             }
             0x8000 => {
@@ -171,13 +176,13 @@ impl Chip8 {
                     let current_vy = (*this).variable_registers[Y as usize].get();
                     if current_vx != current_vy {
                         //do the skip
-                        (*this).pc.set_point_value((*this).pc.get_point_value()+2);
+                        (*this).pc.set_point_value((*this).pc.get_point_value() + 2);
                     } else {
                         println!("Did not skip, because VX == VY");
                     }
                 };
             }
-            0xA000 => { 
+            0xA000 => {
                 // ANNN (set index register I)
                 self.current_function = |this| {
                     let NN = ((*this).current_instruction & 0x0FFF) as u16;
@@ -276,18 +281,17 @@ impl Chip8 {
                     pixel_height,
                 );
                 if *pixel_val == true {
-                
-                let mut color = graphics::Color::WHITE;
+                    let mut color = graphics::Color::WHITE;
 
-                let rect = graphics::Mesh::new_rectangle(
-                    ctx,
-                    graphics::DrawMode::fill(),
-                    rect_coords,
-                    color,
-                )
-                .unwrap();
-                graphics::draw(ctx, &rect, graphics::DrawParam::default());
-            }
+                    let rect = graphics::Mesh::new_rectangle(
+                        ctx,
+                        graphics::DrawMode::fill(),
+                        rect_coords,
+                        color,
+                    )
+                    .unwrap();
+                    graphics::draw(ctx, &rect, graphics::DrawParam::default());
+                }
             }
         }
     }
@@ -296,14 +300,12 @@ impl Chip8 {
 impl event::EventHandler<ggez::GameError> for Chip8 {
     fn update(&mut self, _ctx: &mut Context) -> GameResult {
         const DESIRED_FPS: u32 = 1;
-        while timer::check_update_time(_ctx, DESIRED_FPS)
-        {
+        while timer::check_update_time(_ctx, DESIRED_FPS) {
             self.fetch();
             self.decode();
             self.execute();
-
         }
-            Ok(())
+        Ok(())
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
