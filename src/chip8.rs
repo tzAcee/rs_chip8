@@ -113,12 +113,10 @@ impl Chip8 {
                     for nth in 0..N {
                         let nth_byte = this.memory.get_byte(I as usize, nth as usize);
 
-                        let mut mask = 1u8; // assuming rightmost bit first
                         for i in 0..8 {
-                            let is_set = nth_byte & mask != 0;
-                            mask <<= 1; // assuming rightmost bit first
+                            let is_set = (nth_byte >> (7 - i) & 1);
 
-                            if is_set == true {
+                            if is_set == 1 {
                                 if (*this)
                                     .display
                                     .is_pixel_on(current_vx as usize, current_vy as usize)
