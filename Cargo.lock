@@ -2006,6 +2006,7 @@ version = "0.1.0"
 dependencies = [
  "ggez",
  "glam 0.21.3",
+ "rand",
  "typenum",
 ]
 

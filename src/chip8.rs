@@ -5,6 +5,7 @@ use ggez::graphics::{self, Color};
 use ggez::{event, timer};
 use ggez::{Context, GameResult};
 use glam::*;
+use rand::Rng;
 use std::{
     thread::{self, current},
     time,
@@ -152,8 +153,8 @@ impl Chip8 {
                 self.current_function = |this| {
                 let function_index = ((*this).current_instruction & 0x000F) as u8;
 
-                let X = (((*this).current_instruction & 0x0F00) << 8) as usize;
-                let Y = (((*this).current_instruction & 0x00F0) << 4) as usize;
+                let X = (((*this).current_instruction & 0x0F00) >> 8) as usize;
+                let Y = (((*this).current_instruction & 0x00F0) >> 4) as usize;
                 
                 match function_index {
                 // 8XY0 Set
@@ -259,9 +260,19 @@ impl Chip8 {
             }
             0xB000 => {
                 // BNNN Jump with offset [Ambigious]
+                self.current_function = |this| {
+                let NNN = ((*this).current_instruction & 0x0FFF) as u32;
+                (*this).pc.set_point_value(((*this).variable_registers[0].get() as u32)+NNN);
+                }
             }
             0xC000 => {
                 // CXNN Random
+                self.current_function = |this| {
+                    let X = ((*this).current_instruction & 0x0F00) >> 8;
+                    let NN = ((*this).current_instruction & 0x00FF) as u8;
+                    let mut rand_number = rand::thread_rng();
+                    (*this).variable_registers[X as usize].set(rand_number.gen::<u8>() & NN);
+                }
             }
             0xD000 => {
                 //DXYN display/draw
