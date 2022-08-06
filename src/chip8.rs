@@ -149,23 +149,91 @@ impl Chip8 {
                 }
             }
             0x8000 => {
+                self.current_function = |this| {
+                let function_index = ((*this).current_instruction & 0x000F) as u8;
+
+                let X = (((*this).current_instruction & 0x0F00) << 8) as usize;
+                let Y = (((*this).current_instruction & 0x00F0) << 4) as usize;
+                
+                match function_index {
                 // 8XY0 Set
-
+                0 => {
+                    (*this).variable_registers[X].set((*this).variable_registers[Y].get());
+                }
                 // 8XY1 Binary Or
-
+                1 => {
+                    let bin_or_val = (*this).variable_registers[X].get() | (*this).variable_registers[Y].get();
+                    (*this).variable_registers[X].set(bin_or_val);
+                }
                 // 8XY2 Binary And
-
+                2 => {
+                    let bin_and_val = (*this).variable_registers[X].get() & (*this).variable_registers[Y].get();
+                    (*this).variable_registers[X].set(bin_and_val);
+                }
                 // 8XY3 logical XOR
-
+                3 => {
+                    let bin_xor_val = (*this).variable_registers[X].get() ^ (*this).variable_registers[Y].get();
+                    (*this).variable_registers[X].set(bin_xor_val);
+                }
                 // 8XY4 Add
-
+                4 => {
+                    let addition_result = (*this).variable_registers[X].get() as u16 + (*this).variable_registers[Y].get() as u16;
+                    if addition_result > 255 {
+                        (*this).variable_registers[15].set(1);
+                        println!("Add resulted in an overflow.");
+                    } else {
+                        (*this).variable_registers[15].set(0);
+                        println!("Add did not result in an overflow.");
+                    }
+                    (*this).variable_registers[X].set(addition_result as u8);
+                }
                 // 8XY5 Subtract
+                5 => {
+                    let minuend = (*this).variable_registers[X].get();
+                    let subtrahend = (*this).variable_registers[Y].get();
+                    
+                    if(minuend > subtrahend) {
+                        (*this).variable_registers[15].set(1);
+                        println!("Subtract resulted in an overflow.");
+                    } else {
+                        (*this).variable_registers[15].set(0);
+                        println!("Subtract did not result in an overflow.");
+                    }
 
+                    let subtract_result = minuend as i16 - subtrahend as i16;
+                    (*this).variable_registers[X].set(subtract_result as u8);
+                }
                 // 8XY6 Shift [Ambigious]
-
+                6 => {
+                    (*this).variable_registers[15].set((*this).variable_registers[X].get() & 1);
+                    (*this).variable_registers[X].set((*this).variable_registers[X].get() >> 1);
+                }
                 // 8XY7 Subtract
+                7 => {
+                    let minuend = (*this).variable_registers[Y].get();
+                    let subtrahend = (*this).variable_registers[X].get();
+                    
+                    if(minuend > subtrahend) {
+                        (*this).variable_registers[15].set(1);
+                        println!("Subtract resulted in an overflow.");
+                    } else {
+                        (*this).variable_registers[15].set(0);
+                        println!("Subtract did not result in an overflow.");
+                    }
 
+                    let subtract_result = minuend as i16 - subtrahend as i16;
+                    (*this).variable_registers[X].set(subtract_result as u8);
+                }
                 // 8XYE Shift [Ambigious]
+                0xE => {
+                    (*this).variable_registers[15].set(((*this).variable_registers[X].get() & 0b10000000) >> 7);
+                    (*this).variable_registers[X].set((*this).variable_registers[X].get() << 1);
+                }
+                _ => {
+                    println!("Did not find matching function inside this OP Code.");
+                }
+            }
+                }
             }
             0x9000 => {
                 // 9XY0 Skip
